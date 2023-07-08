@@ -1,0 +1,67 @@
+% Define the file names of the SEM microscopy images
+file_names = {'x40.png', 'x100.png', 'x150.png', 'x180.png', 'x200.png', 'x250.png', 'x400.png', 'x800.png', 'x1.5k.png', 'x1.8k.png', 'x2.0k.png', 'x2.5k.png'};
+
+graphite_fractions = zeros(size(file_names)); % Initialize an array to store the graphite fractions
+names = cell(size(file_names)); % Initialize a cell array of strings to store the file names
+
+% Loop over each file and calculate the graphite fraction
+for i = 1:length(file_names)
+    % Load the SEM microscopy image
+    img = imread(file_names{i});
+
+    % Convert the image to grayscale
+    img_gray = rgb2gray(img);
+
+    % Segment the graphite regions using thresholding
+    thresh = graythresh(img_gray);
+    bw = imbinarize(img_gray, thresh);
+
+    % Extract the properties of the segmented regions
+    props = regionprops(bw, 'Area', 'Centroid');
+
+    % Calculate the total area fraction of graphite
+    total_area = sum([props.Area]);
+    total_fraction = total_area / numel(bw);
+    graphite_fractions(i) = total_fraction; % Store the graphite fraction in the array
+    
+    % Display the segmented regions overlaid on the original image
+    figure(i);
+    imshow(img)
+    hold on
+    boundaries = bwboundaries(bw);
+    for k = 1:length(boundaries)
+        boundary = boundaries{k};
+        plot(boundary(:,2), boundary(:,1), 'r', 'LineWidth', 2)
+    end
+    hold off
+    
+    % Print the graphite fraction and save the file name
+    [~, name, ~] = fileparts(file_names{i}); % Extract the name of the file without the extension
+    fprintf('Graphite fraction of image %s is %.4f\n', name, total_fraction);
+    names{i} = name;
+end
+
+% Create a scatter plot of the graphite fractions
+hfig = figure;
+scatter(1:length(graphite_fractions), graphite_fractions, 'filled');
+xticks(1:length(graphite_fractions));
+xticklabels(names);
+ylabel('Graphite fraction percentage');
+xlabel('Magnification');
+set(gcf, 'color', 'w');
+% Add a dashed horizontal line at y=0.47
+yline(0.47, '--');
+
+picturewidth = 25; % set this parameter and keep it forever
+hw_ratio = 0.75; % feel free to play with this ratio
+set(findall(hfig,'-property','FontSize'),'FontSize',22) % adjust fontsize to your document
+set(findall(gcf,'type','scatter'),'SizeData',200);
+
+set(findall(hfig,'-property','Box'),'Box','off') % optional
+set(findall(hfig,'-property','Interpreter'),'Interpreter','latex') 
+set(findall(hfig,'-property','TickLabelInterpreter'),'TickLabelInterpreter','latex')
+set(hfig,'Units','centimeters','Position',[3 3 picturewidth hw_ratio*picturewidth])
+pos = get(hfig,'Position');
+set(hfig,'PaperPositionMode','Auto','PaperUnits','centimeters','PaperSize',[pos(3), pos(4)])
+%print(hfig,fname,'-dpdf','-painters','-fillpage')
+
